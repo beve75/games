@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🕵️‍♂️ Impostore Pro: 2000 Parole</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6c5ce7; --secondary: #a29bfe; --danger: #ff7675;
+            --success: #55efc4; --warning: #fdcb6e; --bg: #f0f3f7; --text: #2d3436;
+        }
+        body {
+            font-family: 'Montserrat', sans-serif; background-color: var(--bg);
+            color: var(--text); margin: 0; display: flex; justify-content: center;
+            align-items: center; min-height: 100vh; padding: 10px;
+            user-select: none; -webkit-user-select: none;
+        }
+        .container {
+            background: white; padding: 25px; border-radius: 25px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1); width: 100%; max-width: 500px;
+            text-align: center; position: relative; max-height: 95vh; overflow-y: auto;
+        }
+        .hidden { display: none; }
+        h1 { color: var(--primary); margin: 0 0 15px 0; font-size: 1.6rem; }
+        .input-group { margin-bottom: 15px; display: flex; gap: 8px; }
+        input[type="text"] {
+            padding: 12px; border: 2px solid #dfe6e9; border-radius: 12px;
+            flex-grow: 1; font-size: 16px; outline: none;
+        }
+        #player-list { 
+            list-style: none; padding: 0; margin-bottom: 15px; 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 5px;
+        }
+        #player-list li {
+            background: #f8f9fa; padding: 6px 10px; border-radius: 8px;
+            display: flex; justify-content: space-between; font-size: 0.85rem;
+        }
+        .category-grid { 
+            display: grid; grid-template-columns: repeat(3, 1fr); 
+            gap: 6px; margin-bottom: 15px; 
+        }
+        .cat-btn {
+            padding: 8px 4px; border: 2px solid #eee; border-radius: 10px;
+            background: white; cursor: pointer; transition: 0.2s; font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .cat-btn.active { border-color: var(--primary); background: var(--secondary); color: white; }
+        
+        .switch-container {
+            display: flex; align-items: center; justify-content: space-between;
+            background: #f1f2f6; border-radius: 12px; padding: 10px 15px; margin-bottom: 15px;
+        }
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; transition: .4s; border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px;
+            background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        button.main-btn {
+            padding: 15px; border: none; border-radius: 12px;
+            cursor: pointer; font-weight: bold; font-size: 1rem; width: 100%;
+            transition: 0.2s;
+        }
+        .btn-start { background: var(--primary); color: white; }
+        .btn-reveal { background: #2d3436; color: white; min-height: 120px; font-size: 1.4rem; margin: 20px 0; border: 4px dashed var(--secondary); }
+        .btn-reveal:active { background: #4834d4; }
+        
+        .starter-badge { background: var(--warning); padding: 15px; border-radius: 15px; margin: 15px 0; border: 2px solid #f1c40f; }
+    </style>
+</head>
+<body>
+
+    <div id="setup-screen" class="container">
+        <h1>🕵️‍♂️ L'Impostore</h1>
+        <div class="input-group">
+            <input type="text" id="name-input" placeholder="Nome..." onkeypress="if(event.key==='Enter') addPlayer()">
+            <button onclick="addPlayer()" style="background:var(--secondary); color:white; border-radius:12px; border:none; padding:0 15px;">+</button>
+        </div>
+        <ul id="player-list"></ul>
+
+        <p style="font-size: 0.8rem; font-weight: bold; margin: 10px 0 5px 0;">TEMI (Seleziona multipli):</p>
+        <div class="category-grid" id="category-grid"></div>
+
+        <div class="switch-container">
+            <span style="font-size: 0.85rem; font-weight: 600;">Parole Complesse 🧪</span>
+            <label class="switch">
+                <input type="checkbox" id="complex-toggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <button id="btn-play" class="main-btn btn-start" style="display:none;" onclick="prepareGame()">INIZIA PARTITA</button>
+    </div>
+
+    <div id="reveal-screen" class="container hidden">
+        <h2 id="current-player-name" style="color:var(--primary); margin:0;">---</h2>
+        <p style="font-size: 0.9rem;">Tieni premuto per vedere il tuo ruolo.</p>
+        <button id="hold-area" class="main-btn btn-reveal" 
+             onmousedown="showWord()" onmouseup="hideWord()" onmouseleave="hideWord()"
+             ontouchstart="showWord(event)" ontouchend="hideWord(event)">
+            TIENI PREMUTO
+        </button>
+        <button id="next-btn" class="main-btn hidden" style="background:var(--success); color:white;" onclick="nextTurn()">HO VISTO, PASSA!</button>
+    </div>
+
+    <div id="final-screen" class="container hidden">
+        <h1>🚀 Si comincia!</h1>
+        <div class="starter-badge">
+            🎤 Inizia a parlare:<br>
+            <strong id="starting-player" style="font-size: 1.4rem;">---</strong>
+        </div>
+        <button class="main-btn btn-start" onclick="prepareGame()">NUOVA PARTITA</button>
+        <button class="main-btn" style="background:none; color:var(--primary); margin-top:10px;" onclick="backToSetup()">INDIETRO</button>
+    </div>
+
+    <script>
+        const library = {
+            cibo: ["Pizza", "Sushi", "Lasagne", "Gelato", "Hamburger", "Tacos", "Pancakes", "Kebab", "Tiramisù", "Patatine", "Carbonara", "Wurstel", "Cornetto", "Risotto", "Pollo fritto", "Paella", "Arancino", "Focaccia", "Gnocchi", "Cannolo", "Muffin", "Cheesecake", "Hot Dog", "Noodles", "Poke", "Zuppa", "Bistecca", "Uovo al tegamino", "Baccalà", "Tortellini", "Piadina", "Panettone", "Pandoro", "Castagnole", "Frappe", "Couscous", "Falafel", "Goulash", "Ravioli", "Baguette", "Croissant", "Bretzel", "Fonduta", "Crepe", "Meringa", "Zabaione", "Polenta", "Minestrone", "Spezzatino", "Insalata russa", "Hummus", "Guacamole", "Nachos", "Burrito", "Bruschetta", "Farinata", "Tagliata", "Pesto", "Amatriciana", "Gricia", "Cacio e pepe", "Ossobuco", "Cotoletta", "Frittata", "Omelette", "Brioche", "Donut", "Miele", "Marmellata", "Yogurt", "Cereali", "Porridge", "Zenzero", "Peperoncino", "Curry", "Zafferano", "Tartufo", "Funghi", "Melanzane alla parmigiana", "Caponata", "Ratatouille", "Salmone", "Pesce spada", "Cozze", "Vongole", "Gamberi", "Aragosta", "Ostriche", "Caviale", "Prosciutto", "Salame", "Mortadella", "Bresaola", "Pancetta", "Speck", "Formaggio", "Mozzarella", "Burrata", "Gorgonzola", "Parmigiano", "Pecorino", "Taleggio", "Fontina", "Emmental", "Camembert", "Brie", "Roquefort", "Cheddar", "Feta", "Tofu", "Seitan", "Tempeh", "Soia", "Riso", "Orzo", "Farro", "Quinoa", "Grano saraceno", "Lenticchie", "Ceci", "Fagioli", "Piselli", "Fave", "Lupini", "Castagne", "Noci", "Nocciole", "Mandorle", "Pistacchi", "Anacardi", "Pinoli", "Semi di zucca", "Semi di girasole", "Datteri", "Fichi", "Albicocche", "Pesche", "Prugne", "Mele", "Pere", "Banane", "Arance", "Mandarini", "Limoni", "Pompelmi", "Fragole", "Lamponi", "Mirtilli", "More", "Ribes", "Anguria", "Melone", "Ananas", "Mango", "Papaya", "Avocado", "Cocco", "Kiwi", "Uva", "Ciliegie", "Albicocche", "Susine", "Melagrana", "Cachi", "Fichi d'india", "Medlar", "Litchi", "Dragon fruit", "Passion fruit", "Calamari", "Seppie", "Polpo", "Acciughe", "Sardine", "Tonno", "Sogliola", "Orata", "Branzino", "Trota", "Merluzzo", "Stoccafisso", "Lampredotto", "Trippa", "Fegato", "Rognoni", "Animelle", "Coda alla vaccinara", "Pajata", "Zampone", "Cotechino", "Salsiccia", "Cotechino", "Polpettone", "Polpette", "Scaloppina", "Arrosto", "Bollito", "Spezzatino", "Brasato", "Involtini", "Spiedini", "Grigliata", "Frittura", "Tempura", "Sformato", "Soufflé", "Quiche", "Torta salata"],
+            animali: ["Leone", "Tigre", "Giraffa", "Criceto", "Squalo", "Elefante", "Gatto", "Farfalla", "Dinosauro", "Bradipo", "Canguro", "Gorilla", "Aquila", "Panda", "Lupo", "Volpe", "Orso", "Zebra", "Ippopotamo", "Rinoceronte", "Scimmia", "Delfino", "Balena", "Orca", "Pinguino", "Foca", "Tricheco", "Lontra", "Castoro", "Scoiattolo", "Coniglio", "Leva", "Topo", "Pipistrello", "Riccio", "Talpa", "Cervo", "Alce", "Capriolo", "Cinghiale", "Maiale", "Mucca", "Toro", "Cavallo", "Asino", "Mulo", "Pecora", "Capra", "Lama", "Alpaca", "Cammello", "Dromedario", "Gazzella", "Antilope", "Gnu", "Iena", "Sciacallo", "Ghepardo", "Leopardo", "Pantera", "Puma", "Lince", "Gatto selvatico", "Orso polare", "Orso bruno", "Panda minore", "Koala", "Vombato", "Diavolo della tasmania", "Ornitorinco", "Echidna", "Armadillo", "Formichiere", "Bradipo", "Pangolino", "Lemure", "Babbuino", "Scimpanzé", "Orango", "Mandrillo", "Uistitì", "Macaco", "Suricato", "Mangusta", "Furetto", "Ermellino", "Visone", "Tasso", "Puzzola", "Istrice", "Cavia", "Gerbillo", "Criceto dorato", "Chinchilla", "Degu", "Capibara", "Nutria", "Coypu", "Ratto", "Ghiro", "Moscardino", "Quaglia", "Fagiano", "Pernice", "Beccaccia", "Rondine", "Passero", "Pettirosso", "Merlo", "Usignolo", "Cardellino", "Canarino", "Pappagallo", "Cacatua", "Ara", "Inseparabile", "Diamante mandarino", "Gufo", "Civetta", "Barbagianni", "Allocco", "Aquila reale", "Falco", "Poiana", "Gheppio", "Condor", "Avvoltoio", "Gipeto", "Cigno", "Anatra", "Oca", "Germano reale", "Fenicottero", "Airone", "Cicogna", "Gru", "Pellicano", "Gabbiano", "Albatros", "Pinguino imperatore", "Pinguino di adelia", "Struzzo", "Emù", "Nandù", "Casuarius", "Kiwi", "Pavone", "Tacchino", "Gallo", "Gallina", "Pulcino", "Piccione", "Tortora", "Colibrì", "Martin pescatore", "Picchio", "Upupa", "Corvo", "Gazza ladra", "Ghiandaia", "Pipistrello della frutta", "Vampiro vero", "Serpente", "Cobra", "Pitone", "Boa", "Vipera", "Raganella", "Rospo", "Salamandra", "Tritone", "Coccodrillo", "Alligatore", "Caimano", "Tartaruga marina", "Testuggine", "Iguana", "Camaleonte", "Geco", "Lucertola", "Varano", "Drago di komodo", "Pesce pagliaccio", "Pesce palla", "Pesce spada", "Pesce martello", "Pesce sega", "Pesce luna", "Manta", "Razza", "Anguilla", "Murena", "Cavalluccio marino", "Polpo", "Calamaro", "Seppia", "Nautilus", "Medusa", "Corallo", "Anemone", "Stella marina", "Riccio di mare", "Cetriolo di mare", "Granchio", "Aragosta", "Astice", "Gambero", "Scampo", "Pannocchia", "Cirripede", "Millepiedi", "Centopiedi", "Scorpione", "Ragno", "Tarantola", "Vedova nera", "Zanzara", "Mosca", "Ape", "Vespa", "Calabrone", "Formica", "Termite", "Cavalletta", "Grillo", "Mantide religiosa", "Libellula", "Farfalla monarca", "Falena", "Coleottero", "Scarabeo", "Coccinella", "Lucciola", "Cicala"],
+            fantasy: ["Drago", "Unicorno", "Mago", "Spada", "Castello", "Orco", "Fenice", "Bacchetta", "Gnomo", "Pozione", "Elfo", "Sirena", "Troll", "Vampiro", "Licantropo", "Centauro", "Pegaso", "Grifone", "Idra", "Chimera", "Basilisco", "Sfinge", "Golem", "Nano", "Gigante", "Hobbit", "Ent", "Spirito", "Fantasma", "Demone", "Angelo", "Valchiria", "Ninfa", "Driade", "Sirena", "Tritone", "Kraken", "Leviatano", "Manticora", "Gorgone", "Medusa", "Arpia", "Ciclope", "Minotauro", "Satiro", "Fauno", "Leprecauno", "Banshee", "Wraith", "Lich", "Necromante", "Stregone", "Druido", "Paladino", "Cavaliere", "Bardo", "Ladro", "Assassino", "Chierico", "Monaco", "Ranger", "Alchimista", "Fabbro", "Re", "Regina", "Principe", "Principessa", "Imperatore", "Trono", "Corona", "Scettro", "Anello magico", "Amuleto", "Pergamena", "Libro degli incantesimi", "Sfera di cristallo", "Calderone", "Scopa volante", "Tappeto volante", "Torre", "Sotterraneo", "Labirinto", "Foresta incantata", "Montagna del destino", "Regno", "Impero", "Alleanza", "Gilda", "Profezia", "Maledizione", "Incantesimo", "Rituale", "Evocazione", "Trasmutazione", "Teletrasporto", "Invisibilità", "Volo", "Immortalità", "Resurrezione", "Mana", "Energia", "Elemento", "Fuoco", "Acqua", "Terra", "Aria", "Luce", "Ombra", "Ghiaccio", "Fulmine", "Metallo", "Natura", "Chaos", "Ordine", "Eroe", "Antieroe", "Cattivo", "Signore oscuro", "Esercito", "Battaglia", "Assedio", "Duello", "Torneo", "Cerca", "Avventura", "Tesoro", "Mappa", "Reliquia", "Manufatto", "Runica", "Simbolo", "Portale", "Dimensione", "Mondo parallelo", "Aldilà", "Mitologia", "Leggenda", "Saga", "Cronaca", "Fiaba", "Favola", "Incubo", "Sogno", "Visione", "Oracolo", "Destino", "Fato", "Karma", "Anima", "Essenza", "Spirito guida", "Famiglio", "Animale magico", "Pietra filosofale", "Elisir di lunga vita", "Santo Graal", "Excalibur", "Martello di Thor", "Arco di Cupido", "Tridente di Poseidone", "Fulmine di Zeus", "Elmo dell'oscurità", "Calzari alati", "Specchio magico", "Lampada di Aladino", "Vaso di Pandora", "Filo di Arianna", "Cavallo di Troia", "Atlantide", "Avalon", "Camelot", "Olimpo", "Ade", "Valhalla", "Asgard", "Midgard", "Neverland", "Oz", "Paese delle meraviglie", "Narnia", "Terra di mezzo", "Hogwarts", "Westeros", "Essos", "Mordor", "Contea", "Gran Burrone", "Rohan", "Gondor", "Isengard", "Moria", "Bosco Atro", "Lothlorien", "Erebor", "Winterfell", "Approdo del Re", "Barriera", "Castel Granito", "Nido dell'Aquila", "Alto Giardino", "Lancia del Sole", "Pyke", "Braavos", "Volantis", "Meereen", "Astapor", "Yunkai", "Valyria", "Asshai"],
+            oggetti: ["Smartphone", "Ombrello", "Bicicletta", "Zaino", "Chitarra", "Telescopio", "Sveglia", "Occhiali", "Frigorifero", "Radio", "Orologio", "Lampada", "Libro", "Penna", "Matita", "Quaderno", "Computer", "Tastiera", "Mouse", "Monitor", "Cuffie", "Microfono", "Fotocamera", "Telecomando", "Televisore", "Ventilatore", "Condizionatore", "Stufa", "Lampadario", "Divano", "Poltrona", "Tavolo", "Sedia", "Letto", "Armadio", "Cassettiera", "Scrivania", "Libreria", "Specchio", "Tenda", "Tappeto", "Cuscino", "Coperta", "Lenzuolo", "Asciugamano", "Accappatoio", "Sapone", "Shampoo", "Dentifricio", "Spazzolino", "Pettine", "Spazzola", "Asciugacapelli", "Rasoio", "Forbici", "Ago", "Filo", "Bottone", "Cerniera", "Spilla", "Gancio", "Martello", "Cacciavite", "Pinza", "Chiave inglese", "Sega", "Trapano", "Chiodo", "Vite", "Bullone", "Dado", "Rondella", "Metro", "Livella", "Pennello", "Rullo", "Vernice", "Colla", "Nastro adesivo", "Corda", "Spago", "Catena", "Lucchetto", "Chiave", "Portachiavi", "Portafoglio", "Borsa", "Valigia", "Zainetto", "Ombrellone", "Sdraio", "Amaca", "Barbecue", "Tosaerba", "Vanga", "Rastrello", "Annaffiatoio", "Vaso", "Faro", "Torcia", "Batteria", "Caricabatterie", "Cavo", "Presa", "Interruttore", "Lampadina", "Candela", "Fiammifero", "Accendino", "Cenere", "Pipa", "Sigaro", "Sigaretta", "Portacenere", "Bicchiere", "Piatto", "Posata", "Forchetta", "Coltello", "Cucchiaio", "Cucchiaino", "Tazza", "Tazzina", "Caraffa", "Bottiglia", "Tappo", "Cavatappi", "Apribottiglie", "Apriscatole", "Grattugia", "Scolapasta", "Pentola", "Padella", "Teglia", "Coperchio", "Mestolo", "Frusta", "Mattarello", "Tagliere", "Bilancia", "Forno", "Microonde", "Tostapane", "Bollitore", "Caffettiera", "Frullatore", "Mixer", "Centrifuga", "Lavastoviglie", "Lavatrice", "Asciugatrice", "Ferro da stiro", "Asse da stiro", "Aspirapolvere", "Scopa", "Paletta", "Mocio", "Secchio", "Stendibiancheria", "Molletta", "Cesto", "Pattumiera", "Sacchetto", "Carta igienica", "Fazzoletto", "Tovagliolo", "Tovaglia", "Strofinaccio", "Guanto", "Cappello", "Sciarpa", "Cintura", "Scarpa", "Stivale", "Sandalo", "Ciabatta", "Calzino", "Mutanda", "Canottiera", "Maglietta", "Camicia", "Maglione", "Giacca", "Cappotto", "Pantalone", "Gonna", "Abito", "Pigiama", "Vestaglia", "Costume da bagno", "Occhiali da sole", "Orologio da polso", "Collana", "Braccialetto", "Anello", "Orecchino", "Spilla", "Gemelli", "Fermaglio", "Elastico", "Ombretto", "Rossetto", "Mascarà", "Fard", "Smalto", "Profumo", "Crema", "Maschera", "Cerotto", "Benda", "Termometro", "Siringa", "Pillola", "Sciroppo", "Occhiali da vista", "Lente d'ingrandimento", "Microscopio", "Bussola", "Mappa", "Globo", "Calcolatrice", "Righello", "Squadra", "Compasso", "Gomma", "Temperino", "Evidenziatore", "Pennarello", "Pastello", "Gessetto", "Lavagna", "Cavalletto", "Tela", "Tavolozza", "Spatola", "Inchiostro", "Timbro", "Ceralacca", "Busta", "Francobollo", "Cartolina", "Biglietto", "Giornale", "Rivista", "Catalogo", "Volantino", "Poster", "Calendario", "Agenda", "Diario", "Album", "Cornice", "Statua", "Vaso", "Orologio a pendolo", "Scatola", "Cesto", "Barattolo", "Sacco", "Valigia", "Baule"],
+            sport: ["Calcio", "Basket", "Tennis", "Nuoto", "Scherma", "Sci", "Karate", "Pallavolo", "Golf", "Surf", "Boxe", "Ciclismo", "Rugby", "Skate", "Atletica", "Maratona", "Salto in alto", "Salto in lungo", "Lancio del disco", "Lancio del giavellotto", "Getto del peso", "Staffetta", "Ostacoli", "Ginnastica artistica", "Ginnastica ritmica", "Trampolino", "Tuffi", "Nuoto sincronizzato", "Pallanuoto", "Vela", "Canottaggio", "Canoa", "Kayak", "Windsurf", "Kitesurf", "Paddleboard", "Sci d'acqua", "Wakeboard", "Surf da onda", "Sci alpino", "Sci di fondo", "Salto con gli sci", "Snowboard", "Freestyle", "Biathlon", "Slittino", "Bob", "Skeleton", "Pattinaggio su ghiaccio", "Pattinaggio di figura", "Hockey su ghiaccio", "Curling", "Pattinaggio a rotelle", "Skateboard", "BMX", "Motocross", "Automobilismo", "Formula 1", "Rally", "Karting", "Ciclismo su strada", "Ciclismo su pista", "Mountain bike", "Ciclocross", "Triathlon", "Pentathlon", "Equitazione", "Salto ostacoli", "Dressage", "Polo", "Corse dei cavalli", "Tiro con l'arco", "Tiro a segno", "Tiro a volo", "Pugilato", "Kickboxing", "Muay Thai", "Judo", "Taekwondo", "Lotta libera", "Lotta greco-romana", "Sambo", "Aikido", "Kendo", "Scherma storica", "Sollevamento pesi", "Crossfit", "Bodybuilding", "Fitness", "Yoga", "Pilates", "Zumba", "Aerobica", "Danza classica", "Danza moderna", "Hip hop", "Breakdance", "Balli di gruppo", "Ballo da sala", "Tango", "Salsa", "Merengue", "Bachata", "Flamenco", "Arrampicata", "Alpinismo", "Speleologia", "Escursionismo", "Orienteering", "Paracadutismo", "Parapendio", "Deltaplano", "Volo a vela", "Bungee jumping", "Parkour", "Softair", "Paintball", "Laser tag", "Bowling", "Biliardo", "Freccette", "Ping pong", "Badminton", "Squash", "Padel", "Racquetball", "Cricket", "Baseball", "Softball", "Football americano", "Lacrosse", "Hockey su prato", "Floorball", "Beach volley", "Beach soccer", "Calcio a 5", "Futsal", "Tamburello", "Palla pugno", "Pallatamburello", "Bocce", "Petanque", "Curling su strada", "Scacchi", "Dama", "Bridge", "Poker", "Go", "Mahjong", "E-sport", "Gaming", "Simulazione", "Pesca sportiva", "Caccia", "Escursionismo con le ciaspole", "Nordic walking", "Plogging", "Quidditch", "Dodgeball", "Ultimate frisbee", "Sepak takraw", "Kabaddi", "Hurling", "Gaelic football", "Sumo", "Braccio di ferro", "Tiro alla fune", "Corsa nei sacchi", "Albero della cuccagna", "Palio", "Giostra", "Quintana", "Calcio storico fiorentino"],
+            mestieri: ["Pompiere", "Medico", "Pilota", "Cuoco", "Astronauta", "Insegnante", "Poliziotto", "Architetto", "Sub", "Veterinario", "Meccanico", "Pittore", "Ingegnere", "Avvocato", "Infermiere", "Dentista", "Farmacista", "Psicologo", "Giornalista", "Fotografo", "Scrittore", "Musicista", "Attore", "Regista", "Ballerino", "Cantante", "Modello", "Stilista", "Sarto", "Parrucchiere", "Estetista", "Barbiere", "Elettricista", "Idraulico", "Muratore", "Falegname", "Fabbro", "Carpentiere", "Geometra", "Idraulico", "Saldatore", "Meccanico d'auto", "Meccanico navale", "Meccanico aeronautico", "Elettrauto", "Carrozziere", "Gommista", "Benzinaio", "Autista", "Tassista", "Camionista", "Corriere", "Postino", "Spazzino", "Giardiniere", "Agricoltore", "Allevatore", "Pastore", "Pescatore", "Cacciatore", "Guardia forestale", "Biologo", "Chimico", "Fisico", "Matematico", "Astronomo", "Geologo", "Archeologo", "Storico", "Filosofo", "Sociologo", "Antropologo", "Economista", "Commercialista", "Bancario", "Assicuratore", "Agente immobiliare", "Agente di viaggio", "Guida turistica", "Hostess", "Steward", "Capotreno", "Controllore", "Marinaio", "Capitano", "Ufficiale", "Soldato", "Carabiniere", "Finanziere", "Guardia giurata", "Investigatore", "Giudice", "Notaio", "Politico", "Diplomatico", "Sindaco", "Assessore", "Consigliere", "Segretario", "Impiegato", "Dirigente", "Manager", "Imprenditore", "Artigiano", "Commerciante", "Commesso", "Cassiere", "Magazziniere", "Operaio", "Apprendista", "Stagista", "Volontario", "Prete", "Suora", "Missionario", "Vescovo", "Papa", "Rabbi", "Imam", "Guru", "Sciamano", "Astrologo", "Cartomante", "Mago", "Prestigiatore", "Clown", "Giocoliere", "Acrobata", "Domatore", "Burattinaio", "Ventriloquo", "Dj", "Speaker radiofonico", "Presentatore tv", "Youtuber", "Influencer", "Blogger", "Web designer", "Programmatore", "Sistemista", "Hacker", "Data scientist", "Social media manager", "Copywriter", "Grafico", "Illustratore", "Fumettista", "Tatuatore", "Piercer", "Orafo", "Orologiaio", "Rilegatore", "Restauratore", "Antiquario", "Bibliotecario", "Libraio", "Edicolante", "Fioraio", "Panettiere", "Pasticcere", "Pizzaiolo", "Gelataio", "Sommelier", "Barman", "Cameriere", "Maître", "Receptionist", "Portiere", "Buttafuori", "Bodyguard", "Allenatore", "Arbitro", "Personal trainer", "Massaggiatore", "Fisioterapista", "Logopedista", "Ostetrica", "Pediatra", "Geriatra", "Chirurgo", "Anestesista", "Radiologo", "Cardiologo", "Dermatologo", "Oculista", "Otorino", "Ginecologo", "Urologo", "Neurologo", "Psichiatra", "Oncologo", "Ematologo", "Endocrinologo", "Gastroenterologo", "Nefrologo", "Pneumologo", "Reumatologo", "Ortopedico", "Infettivologo", "Allergologo", "Dietologo", "Nutrizionista", "Veterinario di bordo", "Veterinario da zoo", "Addestratore", "Toelettatore", "Maniscalco"],
+            luoghi: ["Parigi", "Londra", "New York", "Roma", "Spiaggia", "Montagna", "Deserto", "Polo Nord", "Museo", "Stadio", "Cinema", "Scuola", "Luna", "Foresta", "Venezia", "Firenze", "Milano", "Napoli", "Torino", "Palermo", "Bologna", "Genova", "Bari", "Cagliari", "Verona", "Pisa", "Siena", "Amalfi", "Positano", "Capri", "Ischia", "Pompei", "Colosseo", "Torre Eiffel", "Statua della Libertà", "Big Ben", "Piramide", "Sfinge", "Taj Mahal", "Grande Muraglia", "Machu Picchu", "Grand Canyon", "Cascate del Niagara", "Everest", "Kilimangiaro", "Amazzonia", "Sahara", "Gobi", "Antartide", "Artide", "Groenlandia", "Islanda", "Giappone", "Cina", "India", "Australia", "Brasile", "Messico", "Canada", "Egitto", "Grecia", "Spagna", "Portogallo", "Germania", "Francia", "Irlanda", "Scozia", "Norvegia", "Svezia", "Finlandia", "Svizzera", "Austria", "Olanda", "Belgio", "Danimarca", "Russia", "Turchia", "Israele", "Giordania", "Marocco", "Sudafrica", "Kenya", "Thailandia", "Vietnam", "Indonesia", "Filippine", "Nuova Zelanda", "Hawaii", "Caraibi", "Bahamas", "Maldive", "Seychelles", "Polinesia", "Tahiti", "Bora Bora", "Galapagos", "Madagascar", "Zanzibar", "Ibiza", "Formentera", "Maiorca", "Minorca", "Santorini", "Mykonos", "Creta", "Rodi", "Corfù", "Malta", "Cipro", "Sicilia", "Sardegna", "Corsica", "Isola d'Elba", "Isola del Giglio", "Ponza", "Ventotene", "Ustica", "Pantelleria", "Lampedusa", "Linosa", "Lipari", "Vulcano", "Salina", "Stromboli", "Panarea", "Alicudi", "Filicudi", "Egadi", "Favignana", "Levanzo", "Marettimo", "Tremiti", "Gargano", "Salento", "Riviera Romagnola", "Riviera Ligure", "Costa Smeralda", "Costa Azzurra", "Versilia", "Maremma", "Chianti", "Val d'Orcia", "Langhe", "Dolomiti", "Alpi", "Appennini", "Gran Sasso", "Etna", "Vesuvio", "Fuji", "Vatnajökull", "Loch Ness", "Mar Morto", "Mar Rosso", "Mar Mediterraneo", "Oceano Atlantico", "Oceano Pacifico", "Oceano Indiano", "Oceano Artico", "Oceano Antartico", "Rio delle Amazzoni", "Nilo", "Mississippi", "Gange", "Danubio", "Reno", "Senna", "Tamigi", "Tevere", "Arno", "Po", "Lago di Garda", "Lago di Como", "Lago Maggiore", "Lago di Bracciano", "Lago Trasimeno", "Lago di Bolsena", "Lago di Vico", "Lago d'Iseo", "Lago d'Orta", "Lago di Lugano", "Lago di Ginevra", "Lago di Costanza", "Lago Balaton", "Lago Baikal", "Lago Titicaca", "Lago Vittoria", "Lago Michigan", "Isola di Pasqua", "Mont Saint-Michel", "Petra", "Angkor Wat", "Chichén Itzá", "Cristo Redentore", "Burj Khalifa", "Empire State Building", "Golden Gate Bridge", "Sydney Opera House", "Louvre", "British Museum", "Metropolitan Museum", "Vaticano", "Uffizi", "Ermitage", "Prado", "Guggenheim", "MoMA", "Tate Modern", "Pompidou", "Disneyland", "Disney World", "Universal Studios", "Legoland", "Gardaland", "Mirabilandia", "PortAventura", "Europa-Park", "Efteling", "Tivoli Gardens", "Parco Sempione", "Villa Borghese", "Central Park", "Hyde Park", "Tuileries", "Tiergarten", "Retiro", "Vondelpark", "Stazione Termini", "Grand Central Terminal", "Aeroporto JFK", "Aeroporto Heathrow", "Aeroporto Charles de Gaulle", "Aeroporto Fiumicino", "Porto di Genova", "Porto di Rotterdam", "Porto di Singapore"],
+            film: ["Shrek", "Toy Story", "Batman", "Star Wars", "Frozen", "Spiderman", "Topolino", "Nemo", "Harry Potter", "Cenerentola", "Simba", "Minions", "Matrix", "Inception", "Titanic", "Avatar", "Jurassic Park", "Indiana Jones", "James Bond", "Rambo", "Rocky", "Il Padrino", "Pulp Fiction", "Forrest Gump", "Il Gladiatore", "Braveheart", "Schindler's List", "La vita è bella", "Il Signore degli Anelli", "Lo Hobbit", "Pirati dei Caraibi", "Ritorno al Futuro", "Guerre Stellari", "Aliens", "Predator", "Terminator", "Mad Max", "Blade Runner", "Ghostbusters", "E.T.", "Lo Squalo", "Psycho", "Shining", "Arancia Meccanica", "Taxi Driver", "Apocalypse Now", "Scarface", "Goodfellas", "Seven", "Fight Club", "Memento", "Interstellar", "Gravity", "Dunkirk", "Tenet", "The Prestige", "The Dark Knight", "Joker", "Avengers", "Iron Man", "Captain America", "Thor", "Hulk", "Black Widow", "Guardiani della Galassia", "Spider-Man: Into the Spider-Verse", "Black Panther", "Doctor Strange", "Ant-Man", "Captain Marvel", "Eternals", "Shang-Chi", "Spider-Man: No Way Home", "Doctor Strange in the Multiverse of Madness", "Thor: Love and Thunder", "Black Panther: Wakanda Forever", "Ant-Man and the Wasp: Quantumania", "Guardiani della Galassia Vol. 3", "The Marvels", "Deadpool", "Logan", "X-Men", "Wolverine", "Fantastici 4", "Justice League", "Superman", "Wonder Woman", "Aquaman", "Flash", "Green Lantern", "Suicide Squad", "Birds of Prey", "Shazam!", "Black Adam", "The Batman", "Man of Steel", "Batman v Superman", "Wonder Woman 1984", "Zack Snyder's Justice League", "The Flash", "Blue Beetle", "Aquaman and the Lost Kingdom", "The Lion King", "Aladdin", "La Bella e la Bestia", "La Sirenetta", "Mulan", "Pocahontas", "Hercules", "Tarzan", "Lilo & Stitch", "Ratatouille", "WALL-E", "Up", "Inside Out", "Coco", "Luca", "Encanto", "Turning Red", "Soul", "Onward", "The Incredibles", "Cars", "Finding Dory", "Monsters & Co.", "Brave", "A Bug's Life", "Ice Age", "Shrek 2", "Shrek Terzo", "Shrek e vissero felici e contenti", "Madagascar", "Kung Fu Panda", "How to Train Your Dragon", "Despicable Me", "The Secret Life of Pets", "Sing", "Zootropolis", "Moana", "Ralph Spaccatutto", "Big Hero 6", "Tangeld", "Wreck-It Ralph", "Frozen II", "Raya and the Last Dragon", "Strange World", "Wish", "Elemental", "The Super Mario Bros. Movie", "Sonic the Hedgehog", "Pokémon: Detective Pikachu", "The Lego Movie", "Spider-Man: Across the Spider-Verse", "Puss in Boots: The Last Wish", "The Bad Guys", "Trolls", "Sing 2", "Minions: The Rise of Gru", "The Sea Beast", "Guillermo del Toro's Pinocchio", "Turning Red", "The Mitchells vs. the Machines", "Wolfwalkers", "Klaus", "Spider-Man: Into the Spider-Verse", "Coco", "Zootopia", "Inside Out", "Big Hero 6", "Frozen", "Wreck-It Ralph", "Rango", "Toy Story 3", "Up", "WALL-E", "Ratatouille", "Happy Feet", "Wallace & Gromit: The Curse of the Were-Rabbit", "The Incredibles", "Finding Nemo", "Spirited Away", "Shrek"],
+            supereroi: ["Superman", "Wonder Woman", "Hulk", "Iron Man", "Thor", "Flash", "Vedova Nera", "Capitan America", "Aquaman", "Joker", "Thanos", "Spiderman", "Batman", "Wolverine", "Deadpool", "Black Panther", "Doctor Strange", "Ant-Man", "Captain Marvel", "Scarlet Witch", "Vision", "Falcon", "Winter Soldier", "War Machine", "Hawkeye", "Star-Lord", "Gamora", "Drax", "Groot", "Rocket Raccoon", "Nebula", "Mantis", "Yondu", "Adam Warlock", "Silver Surfer", "Ghost Rider", "Daredevil", "Luke Cage", "Jessica Jones", "Iron Fist", "Punisher", "Elektra", "Moon Knight", "Blade", "Morbius", "Venom", "Carnage", "Magneto", "Professor X", "Ciclope", "Jean Grey", "Tempesta", "Bestia", "Rogue", "Gambit", "Nightcrawler", "Colosso", "Kitty Pryde", "Iceman", "Angel", "Psylocke", "Cable", "Mystica", "Sabretooth", "Quicksilver", "X-23", "Legion", "Havok", "Banshee", "Sunspot", "Warpath", "Fantomex", "Deadpool", "Domino", "Shatterstar", "Bedlam", "Zeitgeist", "Peter", "Green Lantern", "Cyborg", "Shazam!", "Robin", "Nightwing", "Batgirl", "Batwoman", "Catwoman", "Harley Quinn", "Poison Ivy", "Bat-Mite", "Alfred Pennyworth", "Commissioner Gordon", "Lucius Fox", "Oracle", "Red Hood", "Red Robin", "Blue Beetle", "Booster Gold", "Martian Manhunter", "Zatanna", "Constantine", "Swamp Thing", "Dr. Fate", "Hawkman", "Hawkgirl", "Green Arrow", "Black Canary", "Vixen", "Atom", "Firestorm", "Killer Frost", "Captain Cold", "Heat Wave", "Reverse Flash", "Zoom", "Savitar", "Godspeed", "Deathstroke", "Ra's al Ghul", "Talia al Ghul", "Bane", "Scarecrow", "Penguin", "Riddler", "Two-Face", "Mr. Freeze", "Killer Croc", "Clayface", "Solomon Grundy", "Hugo Strange", "Mad Hatter", "Ventriliquista", "Firefly", "Man-Bat", "Deadshot", "Captain Boomerang", "Enchantress", "Rick Flag", "Amanda Waller", "Darkseid", "Steppenwolf", "Lex Luthor", "General Zod", "Doomsday", "Brainiac", "Bizarro", "Lobo", "Sinestro", "Atrocitus", "Larfleeze", "Saint Walker", "Star Sapphire", "Indigo-1", "Kyle Rayner", "John Stewart", "Guy Gardner", "Simon Baz", "Jessica Cruz", "Alan Scott", "Kilowog", "Tomar-Re", "Abin Sur", "Ch'p", "Mogo", "Dex-Starr", "Bleez", "Arkillo", "Lyssa Drak", "Parallax", "Anti-Monitor", "The Spectre", "Dr. Manhattan", "Rorschach", "Nite Owl", "Silk Spectre", "Ozymandias", "The Comedian", "V", "Hellboy", "Spawn", "The Tick", "Invincible", "Omni-Man", "Atom Eve", "Robot", "Rex Splode", "Dupli-Kate", "Shrinking Rae", "Monster Girl", "Black Samson", "Bulletproof", "The Immortal", "Zandale", "Brit", "Science Dog", "Tech Jacket", "Wolf-Man", "Witchblade", "The Darkness", "Savage Dragon", "The Mask", "Judge Dredd", "Tank Girl", "Kick-Ass", "Hit-Girl", "Big Daddy", "Red Mist"]
+        };
+
+        const adjectives = ["Spaziale", "Invisibile", "Gigante", "Magico", "Robotico", "Colorato", "Puzzolente", "Volante", "Miniatura", "Parlante", "Radiante", "Ghiacciato", "Infuocato", "Sottosopra", "Antico", "Cyberpunk", "Elettrico", "Saggio", "Furioso", "Timido"];
+
+        let players = [];
+        let selectedCategories = new Set(['cibo', 'animali']);
+        let currentWord = "";
+        let imposterIndex = -1;
+        let currentPlayerIndex = 0;
+
+        function initCategories() {
+            const grid = document.getElementById('category-grid');
+            const icons = { cibo: "🍕", animali: "🦁", fantasy: "🧙‍♂️", oggetti: "🎸", sport: "⚽", mestieri: "👨‍🚒", luoghi: "🗼", film: "🎬", supereroi: "🦸‍♂️" };
+            Object.keys(library).forEach(cat => {
+                const btn = document.createElement('button');
+                btn.className = `cat-btn ${selectedCategories.has(cat) ? 'active' : ''}`;
+                btn.innerHTML = `${icons[cat]}<br>${cat.toUpperCase()}`;
+                btn.onclick = () => toggleCategory(cat, btn);
+                grid.appendChild(btn);
+            });
+        }
+
+        function toggleCategory(cat, btn) {
+            if (selectedCategories.has(cat) && selectedCategories.size > 1) {
+                selectedCategories.delete(cat);
+                btn.classList.remove('active');
+            } else {
+                selectedCategories.add(cat);
+                btn.classList.add('active');
+            }
+        }
+
+        function addPlayer() {
+            const input = document.getElementById('name-input');
+            const name = input.value.trim();
+            if (name && players.length < 20) {
+                players.push(name);
+                updateList();
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        function updateList() {
+            const list = document.getElementById('player-list');
+            list.innerHTML = players.map((p, i) => `<li>${p} <span onclick="players.splice(${i},1);updateList()" style="color:var(--danger); cursor:pointer;">✕</span></li>`).join('');
+            document.getElementById('btn-play').style.display = players.length >= 3 ? 'block' : 'none';
+        }
+
+        function prepareGame() {
+            const isComplex = document.getElementById('complex-toggle').checked;
+            let allWords = [];
+            selectedCategories.forEach(cat => allWords = allWords.concat(library[cat]));
+            
+            let word = allWords[Math.floor(Math.random() * allWords.length)];
+            if (isComplex && Math.random() > 0.6) {
+                word += " " + adjectives[Math.floor(Math.random() * adjectives.length)];
+            }
+            
+            currentWord = word;
+            imposterIndex = Math.floor(Math.random() * players.length);
+            currentPlayerIndex = 0;
+            
+            document.getElementById('setup-screen').classList.add('hidden');
+            document.getElementById('final-screen').classList.add('hidden');
+            document.getElementById('reveal-screen').classList.remove('hidden');
+            updateTurnUI();
+        }
+
+        function updateTurnUI() {
+            document.getElementById('current-player-name').innerText = `Tocca a: ${players[currentPlayerIndex]}`;
+            document.getElementById('hold-area').innerText = "TIENI PREMUTO";
+            document.getElementById('next-btn').classList.add('hidden');
+        }
+
+        function showWord(e) {
+            if(e) e.preventDefault();
+            const area = document.getElementById('hold-area');
+            area.innerHTML = (currentPlayerIndex === imposterIndex) ? "<span style='color:var(--danger)'>SEI L'IMPOSTORE! 🤫</span>" : currentWord.toUpperCase();
+        }
+
+        function hideWord(e) {
+            if(e) e.preventDefault();
+            document.getElementById('hold-area').innerText = "TIENI PREMUTO";
+            document.getElementById('next-btn').classList.remove('hidden');
+        }
+
+        function nextTurn() {
+            currentPlayerIndex++;
+            if (currentPlayerIndex < players.length) {
+                updateTurnUI();
+            } else {
+                document.getElementById('starting-player').innerText = players[Math.floor(Math.random() * players.length)];
+                document.getElementById('reveal-screen').classList.add('hidden');
+                document.getElementById('final-screen').classList.remove('hidden');
+            }
+        }
+
+        function backToSetup() {
+            document.getElementById('final-screen').classList.add('hidden');
+            document.getElementById('setup-screen').classList.remove('hidden');
+        }
+
+        initCategories();
+    </script>
+</body>
+</html>
