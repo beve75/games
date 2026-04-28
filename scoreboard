@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Segnapunti Touch</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #000;
+            user-select: none; /* Impedisce di selezionare il testo */
+            -webkit-user-select: none;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .team {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.1s;
+            cursor: pointer;
+        }
+
+        /* Colori vivaci ma scuri per non consumare troppa batteria */
+        .team-a { background-color: #1a472a; border-right: 2px solid #000; }
+        .team-b { background-color: #1a2a47; }
+
+        .score {
+            font-size: clamp(80px, 30vw, 300px); /* Testo che si adatta allo schermo */
+            font-weight: 900;
+            color: white;
+            pointer-events: none; /* Il click passa attraverso il testo */
+        }
+
+        .label {
+            font-size: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 20px;
+            pointer-events: none;
+        }
+
+        /* Feedback visivo al tocco */
+        .team:active {
+            opacity: 0.7;
+        }
+
+        #reset-zone {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="player1" class="team team-a" onclick="handleTouch(this)">
+        <div class="label">Squadra 1</div>
+        <div class="score">0</div>
+    </div>
+    <div id="player2" class="team team-b" onclick="handleTouch(this)">
+        <div class="label">Squadra 2</div>
+        <div class="score">0</div>
+    </div>
+</div>
+
+<div id="reset-zone" onclick="resetScores()">TIENI PREMUTO PER RESET</div>
+
+<script>
+    let timer = null;
+
+    function handleTouch(element) {
+        if (timer == null) {
+            // Primo click: facciamo partire un timer
+            timer = setTimeout(() => {
+                // Se il timer scade senza un secondo click, incrementa
+                updateScore(element, 1);
+                timer = null;
+            }, 250); // 250ms è il tempo ideale per distinguere il doppio click
+        } else {
+            // Secondo click entro i 250ms: annulla l'incremento e decrementa
+            clearTimeout(timer);
+            timer = null;
+            updateScore(element, -1);
+        }
+    }
+
+    function updateScore(element, delta) {
+        const scoreDisplay = element.querySelector('.score');
+        let current = parseInt(scoreDisplay.innerText);
+        let newValue = current + delta;
+        if (newValue >= 0) {
+            scoreDisplay.innerText = newValue;
+        }
+    }
+
+    // Reset con pressione prolungata o click semplice (per semplicità qui è click)
+    function resetScores() {
+        if(confirm("Azzerare tutto?")) {
+            document.querySelectorAll('.score').forEach(s => s.innerText = '0');
+        }
+    }
+
+    // Impedisce lo zoom al doppio tocco su iOS/Android
+    document.addEventListener('touchstart', function (event) {
+        if (event.touches.length > 1) {
+            event.preventDefault();
+        }
+    }, { passive: false });
+</script>
+
+</body>
+</html>
